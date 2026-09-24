@@ -21,6 +21,14 @@ import { discoverSkills } from '../skills/index.js';
 import { createSpawnSubagent, SPAWN_SUBAGENT_DESCRIPTION } from './subagent/spawn-subagent.js';
 import { createAskUserQuestion, ASK_USER_QUESTION_DESCRIPTION } from './ask-user-question/ask-user-question.js';
 import { createBash, BASH_TOOL_DESCRIPTION } from './bash/bash-tool.js';
+import {
+  statewaveSearchTool, STATEWAVE_SEARCH_DESCRIPTION,
+  statewaveGetContextTool, STATEWAVE_GET_CONTEXT_DESCRIPTION,
+  statewaveTimelineTool, STATEWAVE_TIMELINE_DESCRIPTION,
+  statewaveListSubjectsTool, STATEWAVE_LIST_SUBJECTS_DESCRIPTION,
+  statewaveIngestTool, STATEWAVE_INGEST_DESCRIPTION,
+  statewaveCompileTool, STATEWAVE_COMPILE_DESCRIPTION,
+} from './statewave/index.js';
 
 /**
  * A registered tool with its rich description for system prompt injection.
@@ -226,6 +234,55 @@ export function getToolRegistry(model: string): RegisteredTool[] {
       compactDescription: 'Run a shell command (stdout/stderr/exit code). CLI only; every command asks for approval.',
       concurrencySafe: false,
     });
+  }
+
+  // Statewave: shared cross-agent memory over MCP. Gated on STATEWAVE_URL so it
+  // only appears when the user has the Statewave backend configured.
+  if (process.env.STATEWAVE_URL) {
+    tools.push(
+      {
+        name: 'statewave_search_memories',
+        tool: statewaveSearchTool,
+        description: STATEWAVE_SEARCH_DESCRIPTION,
+        compactDescription: 'Search the user\'s durable Statewave memories (portfolio, risk tolerance, goals).',
+        concurrencySafe: true,
+      },
+      {
+        name: 'statewave_get_context',
+        tool: statewaveGetContextTool,
+        description: STATEWAVE_GET_CONTEXT_DESCRIPTION,
+        compactDescription: 'Assemble a ranked Statewave context bundle for the user, tailored to a task.',
+        concurrencySafe: true,
+      },
+      {
+        name: 'statewave_get_timeline',
+        tool: statewaveTimelineTool,
+        description: STATEWAVE_TIMELINE_DESCRIPTION,
+        compactDescription: 'List the user\'s raw Statewave episodes in chronological order.',
+        concurrencySafe: true,
+      },
+      {
+        name: 'statewave_list_subjects',
+        tool: statewaveListSubjectsTool,
+        description: STATEWAVE_LIST_SUBJECTS_DESCRIPTION,
+        compactDescription: 'List Statewave memory subjects with episode and memory counts.',
+        concurrencySafe: true,
+      },
+      {
+        name: 'statewave_ingest_episode',
+        tool: statewaveIngestTool,
+        description: STATEWAVE_INGEST_DESCRIPTION,
+        compactDescription: 'Store a durable fact or decision the user shared into Statewave memory.',
+        concurrencySafe: true,
+      },
+      {
+        name: 'statewave_compile_subject',
+        tool: statewaveCompileTool,
+        description: STATEWAVE_COMPILE_DESCRIPTION,
+        compactDescription: 'Compile the user\'s raw Statewave episodes into durable memories.',
+        concurrencySafe: false,
+      },
+    );
   }
 
   return tools;
