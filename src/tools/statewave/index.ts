@@ -39,7 +39,7 @@ export const statewaveSearchTool = new DynamicStructuredTool({
   schema: z.object({
     query: z.string().describe('Natural language query for memory recall.'),
     subject: z.string().default(DEFAULT_SUBJECT).describe('Memory subject. Defaults to the user\'s personal context.'),
-    limit: z.number().int().positive().optional().describe('Max memories to return.'),
+    limit: z.number().int().min(1).max(50).optional().describe('Max memories to return (1-50).'),
   }),
   func: async (input) =>
     callStatewave('statewave_search_memories', {
@@ -64,7 +64,7 @@ export const statewaveGetContextTool = new DynamicStructuredTool({
   schema: z.object({
     query: z.string().describe('The task or question to tailor the context bundle to.'),
     subject: z.string().default(DEFAULT_SUBJECT).describe('Memory subject. Defaults to the user\'s personal context.'),
-    max_tokens: z.number().int().positive().optional().describe('Approximate token budget for the bundle.'),
+    max_tokens: z.number().int().min(100).max(32000).optional().describe('Approximate token budget for the bundle (100-32000).'),
   }),
   func: async (input) =>
     callStatewave('statewave_get_context', {
@@ -89,9 +89,9 @@ export const statewaveTimelineTool = new DynamicStructuredTool({
   schema: z.object({
     subject: z.string().default(DEFAULT_SUBJECT).describe('Memory subject. Defaults to the user\'s personal context.'),
     since: z.string().optional().describe('ISO timestamp lower bound (inclusive).'),
-    until: z.string().optional().describe('ISO timestamp upper bound (inclusive).'),
+    until: z.string().optional().describe('ISO timestamp upper bound (exclusive).'),
     kinds: z.array(z.string()).optional().describe('Filter to these episode kinds.'),
-    limit: z.number().int().positive().optional().describe('Max episodes to return.'),
+    limit: z.number().int().min(1).max(500).optional().describe('Max episodes to return (1-500).'),
   }),
   func: async (input) =>
     callStatewave('statewave_get_timeline', {
@@ -112,7 +112,7 @@ export const statewaveListSubjectsTool = new DynamicStructuredTool({
   name: 'statewave_list_subjects',
   description: 'List Statewave memory subjects with their episode and memory counts.',
   schema: z.object({
-    limit: z.number().int().positive().optional().describe('Max subjects to return.'),
+    limit: z.number().int().min(1).max(200).optional().describe('Max subjects to return (1-200).'),
     offset: z.number().int().nonnegative().optional().describe('Pagination offset.'),
   }),
   func: async (input) =>
@@ -144,7 +144,6 @@ export const statewaveIngestTool = new DynamicStructuredTool({
     text: z.string().describe('The fact or decision to record, in plain language.'),
     subject: z.string().default(DEFAULT_SUBJECT).describe('Memory subject. Defaults to the user\'s personal context.'),
     occurred_at: z.string().optional().describe('ISO timestamp of the event. Defaults to now.'),
-    source: z.string().optional().describe('Origin of the episode. Defaults to "dexter".'),
     idempotency_key: z.string().optional().describe('Dedupe key. Defaults to a generated UUID.'),
     metadata: z.record(z.string(), z.unknown()).optional().describe('Optional structured metadata.'),
   }),
@@ -154,7 +153,8 @@ export const statewaveIngestTool = new DynamicStructuredTool({
       kind: input.kind,
       text: input.text,
       occurred_at: input.occurred_at ?? new Date().toISOString(),
-      source: input.source ?? 'dexter',
+      // The server requires source as an object; dexter is the recording agent.
+      source: { type: 'agent', id: 'dexter' },
       idempotency_key: input.idempotency_key ?? globalThis.crypto.randomUUID(),
       ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
     }),

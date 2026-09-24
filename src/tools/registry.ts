@@ -273,7 +273,7 @@ export function getToolRegistry(model: string): RegisteredTool[] {
         tool: statewaveIngestTool,
         description: STATEWAVE_INGEST_DESCRIPTION,
         compactDescription: 'Store a durable fact or decision the user shared into Statewave memory.',
-        concurrencySafe: true,
+        concurrencySafe: false,
       },
       {
         name: 'statewave_compile_subject',
